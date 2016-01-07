@@ -9,7 +9,6 @@
 #include <vector>
 #include "matprod.h"
 #include "wavefunction.h"
-#include "setup.h"
 using namespace std;
 
 template<class ART>
@@ -73,8 +72,11 @@ void MatrixTFIM<ART>::MultMv(ART* v, ART* w){
 
 			//hx, hy
 			//w[lookup_flipped(states[in],i,states)]+=(alphax[i]*hx + sign*alphay[i]*hy*complex<double>(0,1.))*v[in];
+			#ifdef USE_COMPLEX
 			w[states[in]^1<<i]+=0.5*(alphax[i]*hx + sign*alphay[i]*hy*complex<double>(0,1.))*v[in];
-			//w[states[in]^1<<i]+=0.5*(alphax[i]*hx )*v[in];
+			#else
+			w[states[in]^1<<i]+=0.5*(alphax[i]*hx )*v[in];
+			#endif
 			//hz
 			countH+=0.5*sign*alphaz[i];
 		}
@@ -129,12 +131,12 @@ void MatrixTFIM<ART>::make_disorder(int seed){
 	ifstream datfile;
 	datfile.open("nicrans");
 	for(int i=0; i<nStates; i++){
-//		alphax[i]= 2.*(ran.rand()  -0.5);
-//		alphay[i]= 2.*(ran.rand()  -0.5);
-//		alphaz[i]= 2.*(ran.rand()  -0.5);
+		alphax[i]= 2.*(ran.rand()  -0.5);
+		alphay[i]= 2.*(ran.rand()  -0.5);
+		alphaz[i]= 2.*(ran.rand()  -0.5);
 //getting random alphas from a file file sent by nicolas
-		datfile>>alphax[i]>>alphay[i]>>alphaz[i];
-		cout<<alphax[i]<<" "<<alphay[i]<<" "<<alphaz[i]<<endl;
+//		datfile>>alphax[i]>>alphay[i]>>alphaz[i];
+//		cout<<alphax[i]<<" "<<alphay[i]<<" "<<alphaz[i]<<endl;
 	}
 	datfile.close();
 }
@@ -174,6 +176,13 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 	hx=value_from_file(infile,1.);
 	hy=value_from_file(infile,1.);
 	hz=value_from_file(infile,1.);
+	#ifndef USE_COMPLEX
+	if(hy!=0){
+		cout<<"you can't use hy!=0 if you don't enable complex numbers!"<<endl;
+		exit(0);
+	}
+	#endif
+	
 	int seed=value_from_file(infile,1);
 	infile.close();
 	this->init_wavefunction(nStates);
@@ -219,12 +228,12 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 		rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
 		this->ee_compute_rho(this->eigvecs[i],rho,states);
 		rs.compute(rho);
-		cout<<"raw eigenvalues "<<i<<endl;
-		cout<<rs.eigenvalues()<<endl;
+//		cout<<"raw eigenvalues "<<i<<endl;
+//		cout<<rs.eigenvalues()<<endl;
 		EE_levels.clear();
 		for(int j=0;j<rhosize;j++) 
 			if(rs.eigenvalues()(j)>0.) EE_levels.push_back(-log(rs.eigenvalues()(j)));
-			else cout<<"error in eigenvalue! "<<rs.eigenvalues()(j)<<endl;
+//			else cout<<"error in eigenvalue! "<<rs.eigenvalues()(j)<<endl;
 		sort(EE_levels.begin(),EE_levels.end());
 		EE_levels_all.insert(EE_levels_all.end(),EE_levels.begin(),EE_levels.end());
 		EE_levels_storage.push_back(EE_levels);
