@@ -20,8 +20,8 @@ class MatrixTFIM:
 
 	vector<double> alphax,alphay,alphaz;
 	double Jx,Jy,Jz, hx,hy,hz;
-	int nStates;
-	int next(int);
+	int Lx,Ly,nStates;
+	int next(int i, int dir);
 
  public:
 
@@ -45,9 +45,17 @@ int MatrixTFIM<ART>::bittest(int state,int bit){
 }
 
 template<class ART>
-int MatrixTFIM<ART>::next(int i){
-	if(i==nStates-1) return 0;
-	else return i+1;
+int MatrixTFIM<ART>::next(int i, int dir){
+	if(dir==0){
+		if(i%Lx==Lx-1) return i-(Lx-1);
+		else return i+1;
+	}else if(dir==1){
+		if((i/Lx)%Ly==Ly-1) return i-Lx*(Ly-1);
+		else return i+Lx;
+	}else{
+		cout<<"error in next!"<<endl;
+		return -1;
+	}
 }
 template<class ART>
 void MatrixTFIM<ART>::make_states(int charge=-1){
@@ -84,13 +92,20 @@ void MatrixTFIM<ART>::MultMv(ART* v, ART* w){
 		//diagonal elements
 		countJ=0;
 		for(int i=0; i<nStates;i++){
-			if(bittest(states[in],i) == bittest(states[in],next(i)) ) sign=1;
+			if(bittest(states[in],i) == bittest(states[in],next(i,0)) ) sign=1;
 			else sign=-1;
 			//Jx, Jy
-//			if(sign==-1) w[lookup_flipped(states[in],i,next(i),states)]+=(Jx+Jy)*v[in];
-			w[ states[in] ^ ( (1<<i) + (1<<next(i)) ) ]+=(Jx-sign*Jy)*v[in]*0.25;
+			w[ states[in] ^ ( (1<<i) + (1<<next(i,0)) ) ]+=(Jx-sign*Jy)*v[in]*0.25;
 			//Jz
-			countJ+=sign;			
+			countJ+=sign;
+			if(Ly>1){
+				if(bittest(states[in],i) == bittest(states[in],next(i,1)) ) sign=1;
+				else sign=-1;
+				//Jx, Jy
+				w[ states[in] ^ ( (1<<i) + (1<<next(i,1)) ) ]+=(Jx-sign*Jy)*v[in]*0.25;
+				//Jz
+				countJ+=sign;			
+			}			
 			
 		}
 		w[in]+=(countJ*Jz*0.25+countH*hz)*v[in];	
@@ -167,7 +182,9 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 	//initialize
 	ifstream infile;
 	infile.open("params");
-	nStates=value_from_file(infile,3);
+	Lx=value_from_file(infile,3);
+	Ly=value_from_file(infile,3);
+	nStates=Lx*Ly;
 	int charge=-1;
 	make_states(charge);
 //	cout<<this->nrows()<<endl;
@@ -192,7 +209,6 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 
 	this->makeDense();
 	this->EigenDenseEigs();
-	
 //	cout<<this->EigenDense<<endl;
 
 //entanglement testing
