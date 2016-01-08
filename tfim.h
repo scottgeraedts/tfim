@@ -38,6 +38,7 @@ class MatrixTFIM:
   	
 	MatrixTFIM(int _Lx, int _Ly, double _Jx, double _Jy, double _Jz, vector<double> _alphax, vector<double> _alphay, vector<double> _alphaz, int charge);
 	void entanglement_spacings(int start, int end);	
+	void energy_spacings();
 	
 }; // MatrixTFIM.
 
@@ -98,14 +99,14 @@ void MatrixTFIM<ART>::MultMv(ART* v, ART* w){
 			if(bittest(states[in],i) == bittest(states[in],next(i,0)) ) sign=1;
 			else sign=-1;
 			//Jx, Jy
-			w[ states[in] ^ ( (1<<i) + (1<<next(i,0)) ) ]+=(Jx-sign*Jy)*v[in]*0.25;
+			if(Jx!=0 || Jy!=0) w[ states[in] ^ ( (1<<i) + (1<<next(i,0)) ) ]+=(Jx-sign*Jy)*v[in]*0.25;
 			//Jz
 			countJ+=sign;
 			if(Ly>1){
 				if(bittest(states[in],i) == bittest(states[in],next(i,1)) ) sign=1;
 				else sign=-1;
 				//Jx, Jy
-				w[ states[in] ^ ( (1<<i) + (1<<next(i,1)) ) ]+=(Jx-sign*Jy)*v[in]*0.25;
+				if(Jx!=0 || Jy!=0) w[ states[in] ^ ( (1<<i) + (1<<next(i,1)) ) ]+=(Jx-sign*Jy)*v[in]*0.25;
 				//Jz
 				countJ+=sign;			
 			}			
@@ -159,6 +160,19 @@ void MatrixTFIM<ART>::make_disorder(int seed){
 	datfile.close();
 }
 
+template<class ART>
+void MatrixTFIM<ART>::energy_spacings(){
+	vector<double> s=unfoldE(this->eigvals,100);
+	ofstream sout,rout;
+	sout.open("energy_spacings");
+	vector<double> energy_spacings=spacings(s);
+	for(int i=0;i<energy_spacings.size();i++) sout<<energy_spacings[i]<<endl;
+//	for(int i=0;i<s.size();i++) sout<<s[i]<<endl;
+	sout.close();
+	rout.open("energy_r");
+	rout<<compute_r(s)<<endl;
+	rout.close();
+}
 template<class ART>
 void MatrixTFIM<ART>::entanglement_spacings(int start, int end){
 
