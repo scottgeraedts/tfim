@@ -236,10 +236,12 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 	int rhosize=this->ee_setup(0,nStates/2,states);
 	Eigen::Matrix<ART,-1,-1> rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
 	Eigen::SelfAdjointEigenSolver<Eigen::Matrix<ART,-1,-1> > rs;	
-	ofstream Lout,Sout;
+	ofstream Lout,Sout,rout;
 	Lout.open("EE_levels");
 	Sout.open("spacings");
-	int start=this->nrows()/3,end=2*this->nrows()/3;
+	rout.open("r");
+	//int start=this->nrows()/3,end=2*this->nrows()/3;
+	int start=7000, end=10500;
 	for(int i=start;i<end;i++){
 		rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
 		this->ee_compute_rho(this->eigvecs[i],rho,states);
@@ -255,15 +257,17 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 		EE_levels_storage.push_back(EE_levels);
 	}
 	sort(EE_levels_all.begin(),EE_levels_all.end());
-	vector<double> energy_grid=make_grid(EE_levels_all,50);
+	vector<double> energy_grid=make_grid(EE_levels_all,200);
 	vector<double> integrated_DOS=make_DOS(EE_levels_all,energy_grid);
 	for(int i=start;i<end;i++){
 		s=make_S(EE_levels_storage[i-start],energy_grid,integrated_DOS);
+		rout<<compute_r(s)<<endl;
 		s_spacings=spacings(s);
 		s_spacings_all.insert(s_spacings_all.end(),s_spacings.begin(),s_spacings.end());
 	}
 	for(int j=0;j<(signed)EE_levels_all.size();j++) Lout<<EE_levels_all[j]<<" "<<endl;
 	for(int j=0;j<(signed)s_spacings_all.size();j++) Sout<<s_spacings_all[j]<<endl;
+	rout.close();
 	Lout.close();
 	Sout.close();
 }
