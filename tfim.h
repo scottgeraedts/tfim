@@ -18,8 +18,9 @@ class MatrixTFIM:
 
  private:
 
+	double Jx,Jy,Jz;
 	vector<double> alphax,alphay,alphaz;
-	double Jx,Jy,Jz, hx,hy,hz;
+	double hx,hy,hz;
 	int Lx,Ly,nStates;
 	int next(int i, int dir);
 
@@ -33,9 +34,11 @@ class MatrixTFIM:
 
 	void make_disorder(int seed);
 	void make_states(int charge);
-  MatrixTFIM(int);
-  	int L(){return nStates;}
-
+  	int nSpins(){return nStates;}
+  	
+	MatrixTFIM(int _Lx, int _Ly, double _Jx, double _Jy, double _Jz, vector<double> _alphax, vector<double> _alphay, vector<double> _alphaz, int charge);
+	void entanglement_spacings(int start, int end);	
+	
 }; // MatrixTFIM.
 
 template<class ART>
@@ -79,11 +82,11 @@ void MatrixTFIM<ART>::MultMv(ART* v, ART* w){
 			else sign=-1;
 
 			//hx, hy
-			//w[lookup_flipped(states[in],i,states)]+=(alphax[i]*hx + sign*alphay[i]*hy*complex<double>(0,1.))*v[in];
+			//w[lookup_flipped(states[in],i,states)]+=(alphax[i] + sign*alphay[i]*complex<double>(0,1.))*v[in];
 			#ifdef USE_COMPLEX
-			w[states[in]^1<<i]+=0.5*(alphax[i]*hx + sign*alphay[i]*hy*complex<double>(0,1.))*v[in];
+			w[states[in]^1<<i]+=0.5*(alphax[i] + sign*alphay[i]*complex<double>(0,1.))*v[in];
 			#else
-			w[states[in]^1<<i]+=0.5*(alphax[i]*hx )*v[in];
+			w[states[in]^1<<i]+=0.5*(alphax[i] )*v[in];
 			#endif
 			//hz
 			countH+=0.5*sign*alphaz[i];
@@ -108,7 +111,7 @@ void MatrixTFIM<ART>::MultMv(ART* v, ART* w){
 			}			
 			
 		}
-		w[in]+=(countJ*Jz*0.25+countH*hz)*v[in];	
+		w[in]+=(countJ*Jz*0.25+countH)*v[in];	
 	}
 } //  MultMv.
 
@@ -156,87 +159,10 @@ void MatrixTFIM<ART>::make_disorder(int seed){
 	datfile.close();
 }
 
-//template<class ART>
-//inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>(){
-
-//	nStates=12;
-//	make_states(-1);
-//	Jz=1; Jx=1; Jy=1;
-//	hx=1; hy=1; hz=1;
-//	make_disorder(nStates);
-//	//sparse
-//	this->eigenvalues(10,1.);
-//	for(int i=0;i<10;i++) cout<<this->eigvals[this->lowlevpos[i]]<<endl;
-//	cout<<endl;
-//	//dense
-////	this->makeDense();
-////	this->EigenDenseEigs();
-////	for(int i=0;i<this->nrows();i++) cout<<this->eigvals[i]<<endl;
-//	
-//}	
 template<class ART>
-inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
-// Constructor
-
-{
-	//initialize
-	ifstream infile;
-	infile.open("params");
-	Lx=value_from_file(infile,3);
-	Ly=value_from_file(infile,3);
-	nStates=Lx*Ly;
-	int charge=-1;
-	make_states(charge);
-//	cout<<this->nrows()<<endl;
-	Jz=value_from_file(infile,1.);
-	Jx=Jz; Jy=Jz;
-	hx=value_from_file(infile,1.);
-	hy=value_from_file(infile,1.);
-	hz=value_from_file(infile,1.);
-	#ifndef USE_COMPLEX
-	if(hy!=0){
-		cout<<"you can't use hy!=0 if you don't enable complex numbers!"<<endl;
-		exit(0);
-	}
-	#endif
-	
-	int seed=value_from_file(infile,1);
-	infile.close();
-	this->init_wavefunction(nStates);
+void MatrixTFIM<ART>::entanglement_spacings(int start, int end){
 
 	vector<double> s;
-	make_disorder(seed);
-
-	bool sparseSolve=true;
-	int N_output_states;
-	if(!sparseSolve){	
-		N_output_states=this->nrows();
-		this->makeDense();
-		this->EigenDenseEigs();
-	}
-	else{
-		N_output_states=200;
-		N_output_states=this->eigenvalues(N_output_states,0.1);
-	}
-
-//entanglement testing
-//	int rhosize;
-//	Eigen::Matrix<ART,-1,-1> rho;
-//	Eigen::SelfAdjointEigenSolver<Eigen::Matrix<ART,-1,-1> > rs;	
-//	double vn=0;
-//	for(int nspins=1;nspins<=4;nspins++){
-//		rhosize=this->ee_setup(nspins,nStates,states);
-//		rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
-//		this->ee_compute_rho(this->eigvecs[111],rho,states);
-//		rs.compute(rho);
-//		cout<<"nspins: "<<nspins<<"-----"<<endl;
-//		cout<<rs.eigenvalues()<<endl;
-//		vn=0;
-//		for(int i=0;i<rhosize;i++) 		
-//			vn+=-rs.eigenvalues()(i)*log(rs.eigenvalues()(i));
-//		cout<<"entropy: "<<vn<<endl;
-//	}
-
 	vector<double> EE_levels,s_spacings;
 	vector<double> EE_levels_all,s_spacings_all;
 	vector< vector<double> > EE_levels_storage;
@@ -247,13 +173,6 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 	Lout.open("EE_levels");
 	Sout.open("spacings");
 	rout.open("r");
-
-	int start,end;
-	if(sparseSolve){
-		start=0; end=N_output_states;
-	}else{
-		start=this->nrows()/3,end=2*this->nrows()/3;
-	}
 
 	for(int i=start;i<end;i++){
 		rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
@@ -283,7 +202,22 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 	for(int j=0;j<(signed)s_spacings_all.size();j++) Sout<<s_spacings_all[j]<<endl;
 	rout.close();
 	Lout.close();
-	Sout.close();
+	Sout.close();	
+
+}
+template<class ART>
+inline MatrixTFIM<ART>::MatrixTFIM(int _Lx, int _Ly, double _Jx, double _Jy, double _Jz, vector<double> _alphax, vector<double> _alphay, vector<double> _alphaz, int charge): MatrixWithProduct<ART>()
+// Constructor
+
+{
+	Lx=_Lx; Ly=_Ly; nStates=Lx*Ly;
+	Jx=_Jx; Jy=_Jy; Jz=_Jz;
+	alphax=_alphax; alphay=_alphay; alphaz=_alphaz;
+
+	make_states(charge);
+
+	this->init_wavefunction(nStates);
+
 }
 #endif 
 
