@@ -183,7 +183,8 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 	ifstream infile;
 	infile.open("params");
 	Lx=value_from_file(infile,3);
-	Ly=value_from_file(infile,3);
+	int mesh=value_from_file(infile,3);
+	Ly=1;
 	nStates=Lx*Ly;
 	int charge=-1;
 	make_states(charge);
@@ -207,10 +208,18 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 	vector<double> s;
 	make_disorder(seed);
 
-	this->makeDense();
-	this->EigenDenseEigs();
-//	cout<<this->EigenDense<<endl;
-
+	bool sparseSolve=true;
+	int N_output_states;
+	if(!sparseSolve){	
+		N_output_states=this->nrows();
+		this->makeDense();
+		this->EigenDenseEigs();
+	}
+	else{
+		N_output_states=10;
+		N_output_states=this->eigenvalues(N_output_states,-3);
+	}
+cout<<"diaged"<<endl;
 //entanglement testing
 //	int rhosize;
 //	Eigen::Matrix<ART,-1,-1> rho;
@@ -229,7 +238,7 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 //		cout<<"entropy: "<<vn<<endl;
 //	}
 
-//	for(int i=0;i<this->nrows();i++) cout<<this->eigvals[i]<<endl;
+	for(int i=0;i<N_output_states;i++) cout<<this->eigvals[i]<<endl;
 	vector<double> EE_levels,s_spacings;
 	vector<double> EE_levels_all,s_spacings_all;
 	vector< vector<double> > EE_levels_storage;
@@ -240,8 +249,14 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 	Lout.open("EE_levels");
 	Sout.open("spacings");
 	rout.open("r");
-	//int start=this->nrows()/3,end=2*this->nrows()/3;
-	int start=7000, end=10500;
+
+	int start,end;
+	if(sparseSolve){
+		start=0; end=N_output_states;
+	}else{
+		start=this->nrows()/3,end=2*this->nrows()/3;
+	}
+
 	for(int i=start;i<end;i++){
 		rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
 		this->ee_compute_rho(this->eigvecs[i],rho,states);
@@ -257,10 +272,11 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 		EE_levels_storage.push_back(EE_levels);
 	}
 	sort(EE_levels_all.begin(),EE_levels_all.end());
-	vector<double> energy_grid=make_grid(EE_levels_all,200);
+	vector<double> energy_grid=make_grid(EE_levels_all,mesh);
 	vector<double> integrated_DOS=make_DOS(EE_levels_all,energy_grid);
 	for(int i=start;i<end;i++){
 		s=make_S(EE_levels_storage[i-start],energy_grid,integrated_DOS);
+//		for(int j=0;j<(signed)s.size();j++) cout<<s[j]<<endl;
 		rout<<compute_r(s)<<endl;
 		s_spacings=spacings(s);
 		s_spacings_all.insert(s_spacings_all.end(),s_spacings.begin(),s_spacings.end());
