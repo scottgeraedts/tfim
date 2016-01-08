@@ -183,8 +183,7 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 	ifstream infile;
 	infile.open("params");
 	Lx=value_from_file(infile,3);
-	int mesh=value_from_file(infile,3);
-	Ly=1;
+	Ly=value_from_file(infile,3);
 	nStates=Lx*Ly;
 	int charge=-1;
 	make_states(charge);
@@ -216,7 +215,7 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 		this->EigenDenseEigs();
 	}
 	else{
-		N_output_states=100;
+		N_output_states=200;
 		N_output_states=this->eigenvalues(N_output_states,0.1);
 	}
 
@@ -271,7 +270,7 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 		EE_levels_storage.push_back(EE_levels);
 	}
 	sort(EE_levels_all.begin(),EE_levels_all.end());
-	vector<double> energy_grid=make_grid(EE_levels_all,mesh);
+	vector<double> energy_grid=make_grid(EE_levels_all,200);
 	vector<double> integrated_DOS=make_DOS(EE_levels_all,energy_grid);
 	for(int i=start;i<end;i++){
 		s=make_S(EE_levels_storage[i-start],energy_grid,integrated_DOS);
