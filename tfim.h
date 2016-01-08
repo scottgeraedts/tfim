@@ -216,10 +216,10 @@ inline MatrixTFIM<ART>::MatrixTFIM(int x): MatrixWithProduct<ART>()
 		this->EigenDenseEigs();
 	}
 	else{
-		N_output_states=10;
-		N_output_states=this->eigenvalues(N_output_states,-3);
+		N_output_states=100;
+		N_output_states=this->eigenvalues(N_output_states,0.1);
 	}
-cout<<"diaged"<<endl;
+
 //entanglement testing
 //	int rhosize;
 //	Eigen::Matrix<ART,-1,-1> rho;
@@ -238,7 +238,6 @@ cout<<"diaged"<<endl;
 //		cout<<"entropy: "<<vn<<endl;
 //	}
 
-	for(int i=0;i<N_output_states;i++) cout<<this->eigvals[i]<<endl;
 	vector<double> EE_levels,s_spacings;
 	vector<double> EE_levels_all,s_spacings_all;
 	vector< vector<double> > EE_levels_storage;
