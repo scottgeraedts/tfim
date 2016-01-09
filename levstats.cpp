@@ -52,9 +52,9 @@ int main(){
 	bool sparseSolve=false;
 	if(Lx>14) sparseSolve=true;
 	int N_output_states,start,end;
+	A.makeDense();
 	if(!sparseSolve){	
 		N_output_states=A.nrows();
-		A.makeDense();
 		A.EigenDenseEigs();
 		start=A.nrows()/3; end=2*A.nrows()/3;
 	}
