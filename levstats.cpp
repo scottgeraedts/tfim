@@ -50,6 +50,7 @@ int main(){
 #endif
 
 	bool sparseSolve=false;
+	if(Lx>14) sparseSolve=true;
 	int N_output_states,start,end;
 	if(!sparseSolve){	
 		N_output_states=A.nrows();
