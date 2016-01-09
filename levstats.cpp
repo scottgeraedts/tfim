@@ -49,11 +49,11 @@ int main(){
 	MatrixTFIM<double> A(Lx,1,Jx,Jx,Jx,alphax,alphay,alphaz,-1);
 #endif
 
-	bool sparseSolve=false;
+	bool sparseSolve=true;
 	int N_output_states,start,end;
+	A.makeDense();
 	if(!sparseSolve){	
 		N_output_states=A.nrows();
-		A.makeDense();
 		A.EigenDenseEigs();
 		start=A.nrows()/3; end=2*A.nrows()/3;
 	}
