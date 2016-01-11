@@ -50,7 +50,7 @@ int main(){
 #endif
 
 	bool sparseSolve=false;
-	if(Lx*Ly>14) sparseSolve=true;
+	if(Lx*Ly>0) sparseSolve=true;
 	int N_output_states,start,end;
 	if(!sparseSolve){	
 		N_output_states=A.nrows();
@@ -60,11 +60,17 @@ int main(){
 	}
 	else{
 		N_output_states=200;
-		double target;
-		N_output_states=A.eigenvalues(N_output_states,A.find_middle());
+		clock_t t=clock();
+		double target=A.find_middle();
+		t=clock()-t;
+		cout<<"middle time"<<(float)t/CLOCKS_PER_SEC<<endl;
+		t=clock();
+		N_output_states=A.eigenvalues(N_output_states,target);
+		t=clock()-t;
+		cout<<"diag time"<<(float)t/CLOCKS_PER_SEC<<endl;
 		start=0; end=N_output_states;
 	}
-	for(int i=0;i<A.nrows();i++) cout<<A.eigvals[i]<<endl;
+	for(int i=0;i<N_output_states;i++) cout<<A.eigvals[i]<<endl;
 	A.energy_spacings();
 }
 

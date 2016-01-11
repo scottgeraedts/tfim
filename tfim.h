@@ -180,23 +180,24 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end){
 	vector<double> EE_levels,s_spacings;
 	vector<double> EE_levels_all,s_spacings_all;
 	vector< vector<double> > EE_levels_storage;
-	int rhosize=this->ee_setup(0,nStates/2,states);
-	Eigen::Matrix<ART,-1,-1> rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
-	Eigen::SelfAdjointEigenSolver<Eigen::Matrix<ART,-1,-1> > rs;	
+//	int rhosize=this->ee_setup(0,nStates/2,states);
+//	Eigen::Matrix<ART,-1,-1> rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
+//	Eigen::SelfAdjointEigenSolver<Eigen::Matrix<ART,-1,-1> > rs;	
 	ofstream Lout,Sout,rout;
 	Lout.open("EE_levels");
 	Sout.open("spacings");
 	rout.open("r");
-
+	vector<double> from_svd;
 	for(int i=start;i<end;i++){
-		rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
-		this->ee_compute_rho(this->eigvecs[i],rho,states);
-		rs.compute(rho);
+//		rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
+//		this->ee_compute_rho(this->eigvecs[i],rho,states);
+//		rs.compute(rho);
+		from_svd=this->entanglement_spectrum_SVD(this->eigvecs[i],states,this->rangeToBitstring(0,nStates/2));
 //		cout<<"raw eigenvalues "<<i<<endl;
-//		cout<<rs.eigenvalues()<<endl;
+//		for(int j=0;j<rhosize;j++) cout<<rs.eigenvalues()(j)<<" "<<from_svd[j]<<endl;
 		EE_levels.clear();
 		for(int j=0;j<rhosize;j++) 
-			if(rs.eigenvalues()(j)>0.) EE_levels.push_back(-log(rs.eigenvalues()(j)));
+			if(rs.eigenvalues()(j)>0.) EE_levels.push_back(-log(from_svd[j]));
 //			else cout<<"error in eigenvalue! "<<rs.eigenvalues()(j)<<endl;
 		sort(EE_levels.begin(),EE_levels.end());
 		EE_levels_all.insert(EE_levels_all.end(),EE_levels.begin(),EE_levels.end());
