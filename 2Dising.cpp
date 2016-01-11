@@ -50,6 +50,7 @@ int main(){
 #endif
 
 	bool sparseSolve=false;
+	if(Lx*Ly>14) sparseSolve=true;
 	int N_output_states,start,end;
 	if(!sparseSolve){	
 		N_output_states=A.nrows();
@@ -59,7 +60,8 @@ int main(){
 	}
 	else{
 		N_output_states=200;
-		N_output_states=A.eigenvalues(N_output_states,0.1);
+		double target;
+		N_output_states=A.eigenvalues(N_output_states,A.find_middle());
 		start=0; end=N_output_states;
 	}
 	for(int i=0;i<A.nrows();i++) cout<<A.eigvals[i]<<endl;
