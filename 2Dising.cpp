@@ -1,10 +1,30 @@
 
 #include "version.h"
 #include "tfim.h"
+#include <string>
+#include <bitset>
 #include <Eigen/Core>
 
 using namespace std;
+//return integers that make nice entanglement cuts
+int cuts(int Lx,int Ly){
 
+	bitset<30> out;
+//4x3:
+// 0 0 0 0
+// 1 1 1 0
+// 1 1 1 0 ==0,1,2,4,5,6
+	if(Lx*Ly==12) //careful! this won't work for 6x2!
+		out=bitset<30>(string("000001110111"));
+//5x3:
+// 0 0 0 0 0
+// 1 1 1 1 0
+// 1 1 1 1 0 ==0,1,2,4,5,6
+	if(Lx*Ly==15)
+		out=bitset<30>(string("000000111101111"));
+
+	return out.to_ulong();	
+}
 int main(){
 
 	clock_t CPUtime1=clock();
@@ -67,6 +87,7 @@ int main(){
 	//	double target=A.find_middle();
 	//	CPUtime2=clock()-CPUtime2;
 		double target=0.5;
+		start=0; end=N_output_states;
 //		walltime2=time(NULL)-walltime2;
 //		cout<<"time to find middlish energies: "<<(float)CPUtime2/CLOCKS_PER_SEC<<" CPU time and "<<walltime2<<" walltime"<<endl;
 		N_output_states=A.eigenvalues(N_output_states,target);
@@ -74,7 +95,7 @@ int main(){
 	}
 //	for(int i=0;i<N_output_states;i++) cout<<A.eigvals[i]<<endl;
 	A.energy_spacings();
-	A.entanglement_spacings(start,end);
+	A.entanglement_spacings(start,end,cuts(Lx,Ly));
 	CPUtime1=clock()-CPUtime1;
 	walltime1=time(NULL)-walltime1;
 	cout<<"total time: "<<(float)CPUtime1/CLOCKS_PER_SEC<<" CPU time and "<<walltime1<<" walltime"<<endl;

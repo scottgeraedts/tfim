@@ -37,7 +37,7 @@ class MatrixTFIM:
   	int nSpins(){return nStates;}
   	
 	MatrixTFIM(int _Lx, int _Ly, double _Jx, double _Jy, double _Jz, vector<double> _alphax, vector<double> _alphay, vector<double> _alphaz, int charge);
-	void entanglement_spacings(int start, int end);	
+	void entanglement_spacings(int start, int end, int to_trunc);	
 	void energy_spacings();
 	
 }; // MatrixTFIM.
@@ -175,7 +175,7 @@ void MatrixTFIM<ART>::energy_spacings(){
 	rout.close();
 }
 template<class ART>
-void MatrixTFIM<ART>::entanglement_spacings(int start, int end){
+void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc){
 
 	vector<double> s;
 	vector<double> EE_levels,s_spacings;
@@ -193,7 +193,7 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end){
 //		rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
 //		this->ee_compute_rho(this->eigvecs[i],rho,states);
 //		rs.compute(rho);
-		from_svd=this->entanglement_spectrum_SVD(this->eigvecs[i],states,this->rangeToBitstring(0,nStates/2));
+		from_svd=this->entanglement_spectrum_SVD(this->eigvecs[i],states,to_trunc);
 //		cout<<"raw eigenvalues "<<i<<endl;
 //		for(int j=0;j<rhosize;j++) cout<<rs.eigenvalues()(j)<<" "<<from_svd[j]<<endl;
 		EE_levels.clear();

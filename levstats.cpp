@@ -65,7 +65,7 @@ int main(){
 		N_output_states=A.eigenvalues(N_output_states,0.1);
 		start=0; end=N_output_states;
 	}
-	A.entanglement_spacings(start,end);
+	A.entanglement_spacings(start,end,A.rangeToBitstring(0,Lx/2));
 	//cout<<"total time is"<<(float)(clock()-CPUtime)/CLOCKS_PER_SEC<<" CPU time and "<<time(NULL)-walltime<<" walltime"<<endl;
 }
 
