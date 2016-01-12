@@ -7,6 +7,8 @@ using namespace std;
 
 int main(){
 
+	clock_t CPUtime1=clock();
+	time_t walltime1=time(NULL);
 	//read parameters from a file
 	ifstream infile;
 	infile.open("params2d");
@@ -50,7 +52,7 @@ int main(){
 #endif
 
 	bool sparseSolve=false;
-	if(Lx*Ly>0) sparseSolve=true;
+	if(Lx*Ly>12) sparseSolve=true;
 	int N_output_states,start,end;
 	if(!sparseSolve){	
 		N_output_states=A.nrows();
@@ -60,18 +62,22 @@ int main(){
 	}
 	else{
 		N_output_states=200;
-		clock_t t=clock();
-		double target=A.find_middle();
-		t=clock()-t;
-		cout<<"middle time"<<(float)t/CLOCKS_PER_SEC<<endl;
-		t=clock();
+	//	clock_t CPUtime2=clock();
+	//	time_t walltime2=time(NULL);
+	//	double target=A.find_middle();
+	//	CPUtime2=clock()-CPUtime2;
+		double target=0.5;
+//		walltime2=time(NULL)-walltime2;
+//		cout<<"time to find middlish energies: "<<(float)CPUtime2/CLOCKS_PER_SEC<<" CPU time and "<<walltime2<<" walltime"<<endl;
 		N_output_states=A.eigenvalues(N_output_states,target);
-		t=clock()-t;
-		cout<<"diag time"<<(float)t/CLOCKS_PER_SEC<<endl;
 		start=0; end=N_output_states;
 	}
-	for(int i=0;i<N_output_states;i++) cout<<A.eigvals[i]<<endl;
+//	for(int i=0;i<N_output_states;i++) cout<<A.eigvals[i]<<endl;
 	A.energy_spacings();
+	A.entanglement_spacings(start,end);
+	CPUtime1=clock()-CPUtime1;
+	walltime1=time(NULL)-walltime1;
+	cout<<"total time: "<<(float)CPUtime1/CLOCKS_PER_SEC<<" CPU time and "<<walltime1<<" walltime"<<endl;
 }
 
 

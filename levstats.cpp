@@ -7,6 +7,8 @@ using namespace std;
 
 int main(){
 
+	//clock_t CPUtime=clock();
+	//time_t walltime=time(NULL);
 	//read parameters from a file
 	ifstream infile;
 	infile.open("params");
@@ -50,7 +52,7 @@ int main(){
 #endif
 
 	bool sparseSolve=false;
-	if(Lx>14) sparseSolve=true;
+	if(Lx>10) sparseSolve=true;
 	int N_output_states,start,end;
 	if(!sparseSolve){	
 		A.makeDense();
@@ -64,6 +66,7 @@ int main(){
 		start=0; end=N_output_states;
 	}
 	A.entanglement_spacings(start,end);
+	//cout<<"total time is"<<(float)(clock()-CPUtime)/CLOCKS_PER_SEC<<" CPU time and "<<time(NULL)-walltime<<" walltime"<<endl;
 }
 
 

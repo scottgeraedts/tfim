@@ -162,6 +162,7 @@ void MatrixTFIM<ART>::make_disorder(int seed){
 
 template<class ART>
 void MatrixTFIM<ART>::energy_spacings(){
+	sort(this->eigvals.begin(),this->eigvals.end());
 	vector<double> s=unfoldE(this->eigvals,100);
 	ofstream sout,rout;
 	sout.open("energy_spacings");
@@ -196,8 +197,8 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end){
 //		cout<<"raw eigenvalues "<<i<<endl;
 //		for(int j=0;j<rhosize;j++) cout<<rs.eigenvalues()(j)<<" "<<from_svd[j]<<endl;
 		EE_levels.clear();
-		for(int j=0;j<rhosize;j++) 
-			if(rs.eigenvalues()(j)>0.) EE_levels.push_back(-log(from_svd[j]));
+		for(int j=0;j<(signed)from_svd.size();j++) 
+			if(from_svd[j]>0.) EE_levels.push_back(-log(from_svd[j]));
 //			else cout<<"error in eigenvalue! "<<rs.eigenvalues()(j)<<endl;
 		sort(EE_levels.begin(),EE_levels.end());
 		EE_levels_all.insert(EE_levels_all.end(),EE_levels.begin(),EE_levels.end());
