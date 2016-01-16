@@ -165,7 +165,6 @@ void MatrixTFIM<ART>::energy_spacings(){
 	sort(this->eigvals.begin(),this->eigvals.end());
 	vector<double> s=unfoldE(this->eigvals,100);
 	ofstream sout,rout;
-	sout.open("energy_spacings");
 	vector<double> energy_spacings=spacings(s);
 	for(int i=0;i<energy_spacings.size();i++) sout<<energy_spacings[i]<<endl;
 //	for(int i=0;i<s.size();i++) sout<<s[i]<<endl;
@@ -214,7 +213,8 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc){
 		s_spacings=spacings(s);
 		s_spacings_all.insert(s_spacings_all.end(),s_spacings.begin(),s_spacings.end());
 	}
-	for(int j=0;j<(signed)EE_levels_all.size();j++) Lout<<EE_levels_all[j]<<" "<<endl;
+	for(int j=0;j<(signed)EE_levels_storage.size();j++) 
+		for(int k=0;k<(signed)EE_levels_storage[j].size();k++) Lout<<EE_levels_storage[j][k]<<" "<<endl;
 	for(int j=0;j<(signed)s_spacings_all.size();j++) Sout<<s_spacings_all[j]<<endl;
 	rout.close();
 	Lout.close();

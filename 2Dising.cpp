@@ -23,6 +23,8 @@ int cuts(int Lx,int Ly){
 	if(Lx*Ly==15)
 		out=bitset<30>(string("000000111101111"));
 
+	if(Lx*Ly==16)
+		out=bitset<30>(string("0000000011111111"));
 	return out.to_ulong();	
 }
 int main(){

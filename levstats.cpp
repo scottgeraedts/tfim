@@ -2,6 +2,7 @@
 #include "version.h"
 #include "tfim.h"
 #include <Eigen/Core>
+#include <iomanip>
 
 using namespace std;
 
@@ -33,17 +34,17 @@ int main(){
 	vector<double> alphax=vector<double>(Lx,0);
 	vector<double> alphay=vector<double>(Lx,0);
 	vector<double> alphaz=vector<double>(Lx,0);
-//	ifstream datfile;
-//	datfile.open("nicrans");
+	ofstream datfile;
+	datfile.open("nicrans");
 	for(int i=0; i<Lx; i++){
 		alphax[i]= 2.*hx*(ran.rand()  -0.5);
 		alphay[i]= 2.*hy*(ran.rand()  -0.5);
 		alphaz[i]= 2.*hz*(ran.rand()  -0.5);
 //getting random alphas from a file file sent by nicolas
-//		datfile>>alphax[i]>>alphay[i]>>alphaz[i];
+		datfile<<setprecision(14)<<alphax[i]<<" "<<alphay[i]<<" "<<alphaz[i]<<endl;
 //		cout<<alphax[i]<<" "<<alphay[i]<<" "<<alphaz[i]<<endl;
 	}
-//	datfile.close();
+	datfile.close();
 
 #ifdef USE_COMPLEX
 	MatrixTFIM< complex<double> > A(Lx,1,Jx,Jx,Jx,alphax,alphay,alphaz,-1);
@@ -52,7 +53,7 @@ int main(){
 #endif
 
 	bool sparseSolve=false;
-	if(Lx>10) sparseSolve=true;
+	if(Lx>0) sparseSolve=true;
 	int N_output_states,start,end;
 	if(!sparseSolve){	
 		A.makeDense();
@@ -61,10 +62,12 @@ int main(){
 		start=A.nrows()/3; end=2*A.nrows()/3;
 	}
 	else{
-		N_output_states=200;
+		N_output_states=20;
 		N_output_states=A.eigenvalues(N_output_states,0.1);
 		start=0; end=N_output_states;
 	}
+	ofstream Eout;
+	A.energy_spacings();
 	A.entanglement_spacings(start,end,A.rangeToBitstring(0,Lx/2));
 	//cout<<"total time is"<<(float)(clock()-CPUtime)/CLOCKS_PER_SEC<<" CPU time and "<<time(NULL)-walltime<<" walltime"<<endl;
 }
