@@ -83,7 +83,7 @@ int main(){
 		start=A.nrows()/3; end=2*A.nrows()/3;
 	}
 	else{
-		N_output_states=200;
+		N_output_states=1000;
 	//	clock_t CPUtime2=clock();
 	//	time_t walltime2=time(NULL);
 	//	double target=A.find_middle();

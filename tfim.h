@@ -165,8 +165,9 @@ void MatrixTFIM<ART>::energy_spacings(){
 	sort(this->eigvals.begin(),this->eigvals.end());
 	vector<double> s=unfoldE(this->eigvals,100);
 	ofstream sout,rout;
+	sout.open("energy_spacings");
 	vector<double> energy_spacings=spacings(s);
-	for(int i=0;i<energy_spacings.size();i++) sout<<energy_spacings[i]<<endl;
+	for(int i=0;i<(signed)energy_spacings.size();i++) sout<<energy_spacings[i]<<endl;
 //	for(int i=0;i<s.size();i++) sout<<s[i]<<endl;
 	sout.close();
 	rout.open("energy_r");
