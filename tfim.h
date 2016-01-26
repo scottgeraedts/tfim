@@ -21,11 +21,11 @@ class MatrixTFIM:
 	double Jx,Jy,Jz;
 	vector<double> alphax,alphay,alphaz;
 	double hx,hy,hz;
-	int Lx,Ly,Nspins;
-	int next(int i, int dir);
 
  public:
 
+	int Lx,Ly,Nspins;
+	int next(int i, int dir);
 	vector<int> states;
 	int bitflip(int,int);
 	void MultMv(ART* v, ART* w);
@@ -36,8 +36,9 @@ class MatrixTFIM:
   	int nSpins(){return Nspins;}
   	
 	MatrixTFIM(int _Lx, int _Ly, double _Jx, double _Jy, double _Jz, vector<double> _alphax, vector<double> _alphay, vector<double> _alphaz, int charge);
-	void entanglement_spacings(int start, int end, int to_trunc);	
-	void energy_spacings();
+	MatrixTFIM(){ };
+	void entanglement_spacings(int start, int end, int to_trunc,double label);	
+	void energy_spacings(double label);
 	
 }; // MatrixTFIM.
 
@@ -154,21 +155,27 @@ void MatrixTFIM<ART>::make_disorder(int seed){
 }
 
 template<class ART>
-void MatrixTFIM<ART>::energy_spacings(){
+void MatrixTFIM<ART>::energy_spacings(double label=-100){
 	sort(this->eigvals.begin(),this->eigvals.end());
 	vector<double> s=unfoldE(this->eigvals,100);
 	ofstream sout,rout;
 	vector<double> energy_spacings=spacings(s);
-	sout.open("energy_spacings");
+	stringstream filename;
+	filename<<"energy_spacings";
+	if(label!=-100) filename<<label;
+	sout.open(filename.str().c_str());
 	for(int i=0;i<energy_spacings.size();i++) sout<<energy_spacings[i]<<endl;
 //	for(int i=0;i<s.size();i++) sout<<s[i]<<endl;
 	sout.close();
-	rout.open("energy_r");
+	filename.str("");
+	filename<<"energy_r";
+	if(label!=-100) filename<<label;
+	rout.open(filename.str().c_str());
 	rout<<compute_r(s)<<endl;
 	rout.close();
 }
 template<class ART>
-void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc){
+void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc,double label=-100){
 
 	vector<double> s;
 	vector<double> EE_levels,s_spacings;
@@ -178,9 +185,15 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc){
 //	Eigen::Matrix<ART,-1,-1> rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
 //	Eigen::SelfAdjointEigenSolver<Eigen::Matrix<ART,-1,-1> > rs;	
 	ofstream Lout,Sout,rout;
+	stringstream filename;
 	Lout.open("EE_levels");
-	Sout.open("spacings");
-	rout.open("r");
+	filename<<"spacings";
+	if(label!=-100) filename<<label;
+	Sout.open(filename.str().c_str());
+	filename.str("");
+	filename<<"r";
+	if(label!=-100) filename<<label;
+	rout.open(filename.str().c_str());
 	vector<double> from_svd;
 	for(int i=start;i<end;i++){
 //		rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
@@ -191,7 +204,7 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc){
 //		for(int j=0;j<rhosize;j++) cout<<rs.eigenvalues()(j)<<" "<<from_svd[j]<<endl;
 		EE_levels.clear();
 		for(int j=0;j<(signed)from_svd.size();j++) 
-			if(from_svd[j]>0.) EE_levels.push_back(from_svd[j]);
+			if(from_svd[j]>0.) EE_levels.push_back(-log(from_svd[j]));
 //			else cout<<"error in eigenvalue! "<<rs.eigenvalues()(j)<<endl;
 		sort(EE_levels.begin(),EE_levels.end());
 		EE_levels_all.insert(EE_levels_all.end(),EE_levels.begin(),EE_levels.end());
