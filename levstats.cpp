@@ -62,13 +62,11 @@ int main(){
 		start=A.nrows()/3; end=2*A.nrows()/3;
 	}
 	else{
-		N_output_states=20;
+		N_output_states=1000;
 		N_output_states=A.eigenvalues(N_output_states,0.1);
 		start=0; end=N_output_states;
 	}
-	ofstream Eout;
-//	for(int i=0;i<A.nrows();i++) cout<<A.eigvecs[2*A.nrows()/5][i]<<endl;
-//	A.energy_spacings();
+	A.energy_spacings();
 	A.entanglement_spacings(start,end,A.rangeToBitstring(0,Lx/2));
 	//cout<<"total time is"<<(float)(clock()-CPUtime)/CLOCKS_PER_SEC<<" CPU time and "<<time(NULL)-walltime<<" walltime"<<endl;
 }
