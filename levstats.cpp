@@ -53,7 +53,7 @@ int main(){
 #endif
 
 	bool sparseSolve=false;
-	if(Lx>0) sparseSolve=true;
+	if(Lx>14) sparseSolve=true;
 	int N_output_states,start,end;
 	if(!sparseSolve){	
 		A.makeDense();
@@ -67,7 +67,8 @@ int main(){
 		start=0; end=N_output_states;
 	}
 	ofstream Eout;
-	A.energy_spacings();
+//	for(int i=0;i<A.nrows();i++) cout<<A.eigvecs[2*A.nrows()/5][i]<<endl;
+//	A.energy_spacings();
 	A.entanglement_spacings(start,end,A.rangeToBitstring(0,Lx/2));
 	//cout<<"total time is"<<(float)(clock()-CPUtime)/CLOCKS_PER_SEC<<" CPU time and "<<time(NULL)-walltime<<" walltime"<<endl;
 }
