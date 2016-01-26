@@ -21,32 +21,25 @@ class MatrixTFIM:
 	double Jx,Jy,Jz;
 	vector<double> alphax,alphay,alphaz;
 	double hx,hy,hz;
-	int Lx,Ly,nStates;
+	int Lx,Ly,Nspins;
 	int next(int i, int dir);
 
  public:
 
 	vector<int> states;
 	int bitflip(int,int);
-	int bittest(int,int);
 	void MultMv(ART* v, ART* w);
 //	Eigen::Matrix<ART,-1,1> MultEigen(Eigen::Matrix<ART,-1,1>);
 
 	void make_disorder(int seed);
 	void make_states(int charge);
-  	int nSpins(){return nStates;}
+  	int nSpins(){return Nspins;}
   	
 	MatrixTFIM(int _Lx, int _Ly, double _Jx, double _Jy, double _Jz, vector<double> _alphax, vector<double> _alphay, vector<double> _alphaz, int charge);
 	void entanglement_spacings(int start, int end, int to_trunc);	
 	void energy_spacings();
 	
 }; // MatrixTFIM.
-
-template<class ART>
-int MatrixTFIM<ART>::bittest(int state,int bit){	
-	if (state & 1<<bit) return 1;
-	else return 0;
-}
 
 template<class ART>
 int MatrixTFIM<ART>::next(int i, int dir){
@@ -63,7 +56,7 @@ int MatrixTFIM<ART>::next(int i, int dir){
 }
 template<class ART>
 void MatrixTFIM<ART>::make_states(int charge=-1){
-	for(int i=0;i<1<<nStates;i++)
+	for(int i=0;i<1<<Nspins;i++)
 		if(charge==-1 || count_bits(i)==charge) states.push_back(i);
 	this->setrows(states.size());
 }
@@ -78,7 +71,7 @@ void MatrixTFIM<ART>::MultMv(ART* v, ART* w){
 	for(int in=0; in<this->ncols(); in++){
 		//off-diagonal elements
 		countH=0.;
-		for(int i=0; i<nStates; i++){
+		for(int i=0; i<Nspins; i++){
 			if(bittest(states[in],i)) sign=1;
 			else sign=-1;
 
@@ -95,7 +88,7 @@ void MatrixTFIM<ART>::MultMv(ART* v, ART* w){
 		
 		//diagonal elements
 		countJ=0;
-		for(int i=0; i<nStates;i++){
+		for(int i=0; i<Nspins;i++){
 			if(bittest(states[in],i) == bittest(states[in],next(i,0)) ) sign=1;
 			else sign=-1;
 			//Jx, Jy
@@ -122,16 +115,16 @@ void MatrixTFIM<ART>::MultMv(ART* v, ART* w){
 //	Eigen::Matrix<ART,-1,1> w=Eigen::Matrix<ART,-1,1>::Zero(this->ncols());
 //	for(int in=0; in<this->ncols(); in++){
 //		//off-diagonal elements
-//		for(int i=0; i<nStates; i++){
+//		for(int i=0; i<Nspins; i++){
 //			w(bitflip(in,i))+=alpha[i]*v(in);
 //		}
 //		//diagonal elements
 //		countJ=0;
-//		for(int i=0; i<nStates-1;i++){
+//		for(int i=0; i<Nspins-1;i++){
 //			if(bittest(in,i) == bittest(in,i+1) ) countJ--;
 //			else countJ++;
 //		}
-////		if (bittest(in, nStates-1) == bittest(in,0) ) countJ--;
+////		if (bittest(in, Nspins-1) == bittest(in,0) ) countJ--;
 ////		else countJ++;
 //		w(in)+=countJ*(0.5*Jz)*v(in);	
 //	}
@@ -144,12 +137,12 @@ template<class ART>
 void MatrixTFIM<ART>::make_disorder(int seed){
 	MTRand ran;
 	ran.seed(seed);
-	alphax=vector<double>(nStates,0);
-	alphay=vector<double>(nStates,0);
-	alphaz=vector<double>(nStates,0);
+	alphax=vector<double>(Nspins,0);
+	alphay=vector<double>(Nspins,0);
+	alphaz=vector<double>(Nspins,0);
 	ifstream datfile;
 	datfile.open("nicrans");
-	for(int i=0; i<nStates; i++){
+	for(int i=0; i<Nspins; i++){
 		alphax[i]= 2.*(ran.rand()  -0.5);
 		alphay[i]= 2.*(ran.rand()  -0.5);
 		alphaz[i]= 2.*(ran.rand()  -0.5);
@@ -181,7 +174,7 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc){
 	vector<double> EE_levels,s_spacings;
 	vector<double> EE_levels_all,s_spacings_all;
 	vector< vector<double> > EE_levels_storage;
-//	int rhosize=this->ee_setup(0,nStates/2,states);
+//	int rhosize=this->ee_setup(0,Nspins/2,states);
 //	Eigen::Matrix<ART,-1,-1> rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
 //	Eigen::SelfAdjointEigenSolver<Eigen::Matrix<ART,-1,-1> > rs;	
 	ofstream Lout,Sout,rout;
@@ -198,7 +191,7 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc){
 //		for(int j=0;j<rhosize;j++) cout<<rs.eigenvalues()(j)<<" "<<from_svd[j]<<endl;
 		EE_levels.clear();
 		for(int j=0;j<(signed)from_svd.size();j++) 
-			if(from_svd[j]>0.) EE_levels.push_back(-log(from_svd[j]));
+			if(from_svd[j]>0.) EE_levels.push_back(from_svd[j]);
 //			else cout<<"error in eigenvalue! "<<rs.eigenvalues()(j)<<endl;
 		sort(EE_levels.begin(),EE_levels.end());
 		EE_levels_all.insert(EE_levels_all.end(),EE_levels.begin(),EE_levels.end());
@@ -227,13 +220,13 @@ inline MatrixTFIM<ART>::MatrixTFIM(int _Lx, int _Ly, double _Jx, double _Jy, dou
 // Constructor
 
 {
-	Lx=_Lx; Ly=_Ly; nStates=Lx*Ly;
+	Lx=_Lx; Ly=_Ly; Nspins=Lx*Ly;
 	Jx=_Jx; Jy=_Jy; Jz=_Jz;
 	alphax=_alphax; alphay=_alphay; alphaz=_alphaz;
 
 	make_states(charge);
 
-	this->init_wavefunction(nStates);
+	this->init_wavefunction(Nspins);
 
 }
 #endif 
