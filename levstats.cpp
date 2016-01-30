@@ -49,7 +49,7 @@ int main(){
 #ifdef USE_COMPLEX
 	MatrixTFIM< complex<double> > A(Lx,1,Jx,Jx,Jx,alphax,alphay,alphaz,-1);
 #else
-	MatrixTFIM<double> A(Lx,1,Jx,Jx,Jx,alphax,alphay,alphaz,-1);
+	MatrixTFIM<double> A(Lx,1,Jx,Jx,0,alphax,alphay,alphaz,Lx/2);
 #endif
 
 	bool sparseSolve=false;
@@ -68,7 +68,7 @@ int main(){
 	}
 	A.energy_spacings();
 	//start=0; end=A.nrows();
-	A.entanglement_spacings(start,end,A.rangeToBitstring(0,Lx/2));
+	A.entanglement_spacings(start,end,A.rangeToBitstring(0,Lx/2),-100,Lx/4);
 	//cout<<"total time is"<<(float)(clock()-CPUtime)/CLOCKS_PER_SEC<<" CPU time and "<<time(NULL)-walltime<<" walltime"<<endl;
 }
 

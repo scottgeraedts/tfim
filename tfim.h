@@ -20,7 +20,6 @@ class MatrixTFIM:
 
 	double Jx,Jy,Jz;
 	vector<double> alphax,alphay,alphaz;
-	double hx,hy,hz;
 
  public:
 
@@ -37,7 +36,7 @@ class MatrixTFIM:
   	
 	MatrixTFIM(int _Lx, int _Ly, double _Jx, double _Jy, double _Jz, vector<double> _alphax, vector<double> _alphay, vector<double> _alphaz, int charge);
 	MatrixTFIM(){ };
-	void entanglement_spacings(int start, int end, int to_trunc,double label);	
+	void entanglement_spacings(int start, int end, int to_trunc,double label, int charge);	
 	void energy_spacings(double label);
 	
 }; // MatrixTFIM.
@@ -77,12 +76,15 @@ void MatrixTFIM<ART>::MultMv(ART* v, ART* w){
 			else sign=-1;
 
 			//hx, hy
-			//w[lookup_flipped(states[in],i,states)]+=(alphax[i] + sign*alphay[i]*complex<double>(0,1.))*v[in];
-			#ifdef USE_COMPLEX
-			w[states[in]^1<<i]+=0.5*(alphax[i] + sign*alphay[i]*complex<double>(0,1.))*v[in];
-			#else
-			w[states[in]^1<<i]+=0.5*(alphax[i] )*v[in];
-			#endif
+			if(alphax[i]!=0 || alphay[i]!=0){
+				#ifdef USE_COMPLEX
+				w[lookup_flipped(in,states, 1, i)]+=0.5*(alphax[i] + sign*alphay[i]*complex<double>(0,1.))*v[in];
+				//w[states[in]^1<<i]+=0.5*(alphax[i] + sign*alphay[i]*complex<double>(0,1.))*v[in];
+				#else
+				w[lookup_flipped(in,states,1, i)]+=0.5*(alphax[i] )*v[in];
+				//w[states[in]^1<<i]+=0.5*(alphax[i] )*v[in];
+				#endif
+			}
 			//hz
 			countH+=0.5*sign*alphaz[i];
 		}
@@ -93,7 +95,9 @@ void MatrixTFIM<ART>::MultMv(ART* v, ART* w){
 			if(bittest(states[in],i) == bittest(states[in],next(i,0)) ) sign=1;
 			else sign=-1;
 			//Jx, Jy
-			if(Jx!=0 || Jy!=0) w[ states[in] ^ ( (1<<i) + (1<<next(i,0)) ) ]+=(Jx-sign*Jy)*v[in]*0.25;
+			if(sign==-1 && (Jx!=0 || Jy!=0)) w[ lookup_flipped(in , states ,2, i,next(i,0))  ]+=(Jx+Jy)*v[in]*0.25;
+			if(sign==1 && (Jx!=0 || Jy!=0) && Jx!=Jy ) w[ lookup_flipped(in , states ,2, i,next(i,0))  ]+=(Jx-Jy)*v[in]*0.25;
+			//if(Jx!=0 || Jy!=0) w[ states[in] ^ ( (1<<i) + (1<<next(i,0)) ) ]+=(Jx-sign*Jy)*v[in]*0.25;
 			//Jz
 			countJ+=sign;
 			if(Ly>1){
@@ -175,7 +179,7 @@ void MatrixTFIM<ART>::energy_spacings(double label=-100){
 	rout.close();
 }
 template<class ART>
-void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc,double label=-100){
+void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc,double label=-100, int charge=-1){
 
 	vector<double> s;
 	vector<double> EE_levels,s_spacings;
@@ -194,12 +198,13 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc,dou
 	filename<<"r";
 	if(label!=-100) filename<<label;
 	rout.open(filename.str().c_str());
+
 	vector<double> from_svd;
 	for(int i=start;i<end;i++){
 //		rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
 //		this->ee_compute_rho(this->eigvecs[i],rho,states);
 //		rs.compute(rho);
-		from_svd=this->entanglement_spectrum_SVD(this->eigvecs[i],states,to_trunc);
+		from_svd=this->entanglement_spectrum_SVD(this->eigvecs[i],states,to_trunc,charge);
 //		cout<<"raw eigenvalues "<<i<<endl;
 //		for(int j=0;j<rhosize;j++) cout<<rs.eigenvalues()(j)<<" "<<from_svd[j]<<endl;
 		EE_levels.clear();
@@ -213,6 +218,21 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc,dou
 	sort(EE_levels_all.begin(),EE_levels_all.end());
 	vector<double> energy_grid=make_grid(EE_levels_all,200);
 	vector<double> integrated_DOS=make_DOS(EE_levels_all,energy_grid);
+
+	//print DOS
+	filename.str("");
+	filename<<"dos";
+	if(label!=-100) filename<<label;
+	ofstream dosout;
+	dosout.open(filename.str().c_str());
+	for(int i=0;i<(signed)integrated_DOS.size();i++){
+		dosout<<energy_grid[i]<<" ";
+		if(i==integrated_DOS.size()-1) dosout<<0.<<" ";
+		else dosout<<(integrated_DOS[i+1]-integrated_DOS[i])/(energy_grid[i+1]-energy_grid[i])<<" ";
+		dosout<<integrated_DOS[i]<<endl;
+	}
+	dosout.close();
+
 	for(int i=start;i<end;i++){
 		s=make_S(EE_levels_storage[i-start],energy_grid,integrated_DOS);
 //		for(int j=0;j<(signed)s.size();j++) cout<<s[j]<<endl;
