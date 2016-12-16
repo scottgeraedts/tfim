@@ -28,6 +28,7 @@ class MatrixTFIM:
 	vector<int> states;
 	int bitflip(int,int);
 	void MultMv(ART* v, ART* w);
+	void makeSparse();
 //	Eigen::Matrix<ART,-1,1> MultEigen(Eigen::Matrix<ART,-1,1>);
 
 	void make_disorder(int seed);
@@ -36,7 +37,8 @@ class MatrixTFIM:
   	
 	MatrixTFIM(int _Lx, int _Ly, double _Jx, double _Jy, double _Jz, vector<double> _alphax, vector<double> _alphay, vector<double> _alphaz, int charge);
 	MatrixTFIM(){ };
-	void entanglement_spacings(int start, int end, int to_trunc,double label, int charge);	
+	void plot_states(int start, int end);
+	void entanglement_spacings(int start, int end, int to_trunc,double label, string folder, int kmin, int kmax);	
 	void energy_spacings(double label);
 	
 }; // MatrixTFIM.
@@ -114,6 +116,62 @@ void MatrixTFIM<ART>::MultMv(ART* v, ART* w){
 	}
 } //  MultMv.
 
+//similar to above but builds a sparse hamiltonian, hopefully way faster than above
+template<class ART>
+void MatrixTFIM<ART>::makeSparse(){
+	int countJ=0;
+	int sign;
+	double countH;
+	vector<Eigen::Triplet<ART> > triplets;
+	for(int in=0; in<this->ncols(); in++){
+		//off-diagonal elements
+		countH=0.;
+		for(int i=0; i<Nspins; i++){
+			if(bittest(states[in],i)) sign=1;
+			else sign=-1;
+
+			//hx, hy
+			if(alphax[i]!=0 || alphay[i]!=0){
+				#ifdef USE_COMPLEX
+				triplets.push_back(Eigen::Triplet<ART>(in,lookup_flipped(in,states, 1, i),0.5*(alphax[i] + sign*alphay[i]*complex<double>(0,1.))));
+				//w[states[in]^1<<i]+=0.5*(alphax[i] + sign*alphay[i]*complex<double>(0,1.))*v[in];
+				#else
+				triplets.push_back(Eigen::Triplet<ART>(in,lookup_flipped(in,states,1, i),0.5*(alphax[i] )));
+				//w[states[in]^1<<i]+=0.5*(alphax[i] )*v[in];
+				#endif
+			}
+			//hz
+			countH+=0.5*sign*alphaz[i];
+		}
+		
+		//diagonal elements
+		countJ=0;
+		for(int i=0; i<Nspins;i++){
+			if(bittest(states[in],i) == bittest(states[in],next(i,0)) ) sign=1;
+			else sign=-1;
+			//Jx, Jy
+			if(sign==-1 && (Jx!=0 || Jy!=0)) triplets.push_back(Eigen::Triplet<ART>(in,lookup_flipped(in , states ,2, i,next(i,0)),(Jx+Jy)*0.25));
+			if(sign==1 && (Jx!=0 || Jy!=0) && Jx!=Jy ) triplets.push_back(Eigen::Triplet<ART>(in,lookup_flipped(in , states ,2, i,next(i,0)) , (Jx-Jy)*0.25) );
+			//if(Jx!=0 || Jy!=0) w[ states[in] ^ ( (1<<i) + (1<<next(i,0)) ) ]+=(Jx-sign*Jy)*v[in]*0.25;
+			//Jz
+			countJ+=sign;
+			if(Ly>1){
+				if(bittest(states[in],i) == bittest(states[in],next(i,1)) ) sign=1;
+				else sign=-1;
+				//Jx, Jy
+		//		if(Jx!=0 || Jy!=0) w[ states[in] ^ ( (1<<i) + (1<<next(i,1)) ) ]+=(Jx-sign*Jy)*v[in]*0.25;
+				//Jz
+				countJ+=sign;			
+			}			
+			
+		}
+		triplets.push_back(Eigen::Triplet<ART>(in,in,(countJ*Jz*0.25+countH)));	
+	}
+	this->sparse=Eigen::SparseMatrix<ART>(this->nrows(),this->nrows());
+	this->sparse.setFromTriplets(triplets.begin(),triplets.end());
+	this->sparse.makeCompressed();
+} //  makeSparse.
+
 //template<class ART>
 //Eigen::Matrix<ART,-1,1> MatrixTFIM<ART>::MultEigen(Eigen::Matrix<ART,-1,1> v){
 //	int countJ=0;
@@ -161,6 +219,10 @@ void MatrixTFIM<ART>::make_disorder(int seed){
 template<class ART>
 void MatrixTFIM<ART>::energy_spacings(double label=-100){
 	sort(this->eigvals.begin(),this->eigvals.end());
+	ofstream energies;
+	energies.open("energies");
+	for(int i=0;i<(signed)this->eigvals.size();i++) energies<<this->eigvals[i]<<endl;
+	energies.close();
 	vector<double> s=unfoldE(this->eigvals,100);
 	ofstream sout,rout;
 	vector<double> energy_spacings=spacings(s);
@@ -179,7 +241,7 @@ void MatrixTFIM<ART>::energy_spacings(double label=-100){
 	rout.close();
 }
 template<class ART>
-void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc,double label=-100, int charge=-1){
+void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc,double label=-100,string folder=".",int kmin_t=-1, int kmax_t=-0){
 
 	vector<double> s;
 	vector<double> EE_levels,s_spacings;
@@ -188,40 +250,59 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc,dou
 //	int rhosize=this->ee_setup(0,Nspins/2,states);
 //	Eigen::Matrix<ART,-1,-1> rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
 //	Eigen::SelfAdjointEigenSolver<Eigen::Matrix<ART,-1,-1> > rs;	
-	ofstream Lout,Sout,rout;
+	ofstream Lout,Sout,rout,entropy_out;
 	stringstream filename;
 	Lout.open("EE_levels");
-	filename<<"spacings";
+	filename<<folder<<"/spacings";
 	if(label!=-100) filename<<label;
 	Sout.open(filename.str().c_str());
 	filename.str("");
-	filename<<"r";
+	filename<<folder<<"/r";
 	if(label!=-100) filename<<label;
 	rout.open(filename.str().c_str());
+	filename.str("");
+	filename<<folder<<"/entropy";
+	if(label!=-100) filename<<label;
+	entropy_out.open(filename.str().c_str());
 
+	double entropy_sum;
 	vector<double> from_svd;
+	int kmin,kmax;
+	if(this->nrows()==1<<Nspins){
+		kmin=-1; kmax=0;
+	}else{
+		kmin=kmin_t; kmax=kmax_t;
+//		kmin=4; kmax=5;
+	}
 	for(int i=start;i<end;i++){
 //		rho=Eigen::Matrix<ART,-1,-1>::Zero(rhosize,rhosize);
 //		this->ee_compute_rho(this->eigvecs[i],rho,states);
 //		rs.compute(rho);
-		from_svd=this->entanglement_spectrum_SVD(this->eigvecs[i],states,to_trunc,charge);
+		entropy_sum=0;
+		for(int k=kmin;k<kmax;k++){
+			from_svd=this->entanglement_spectrum_SVD(this->eigvecs[i],states,to_trunc,k);
 //		cout<<"raw eigenvalues "<<i<<endl;
 //		for(int j=0;j<rhosize;j++) cout<<rs.eigenvalues()(j)<<" "<<from_svd[j]<<endl;
-		EE_levels.clear();
-		for(int j=0;j<(signed)from_svd.size();j++) 
-			if(from_svd[j]>0.) EE_levels.push_back(-log(from_svd[j]));
+			EE_levels.clear();
+			for(int j=0;j<(signed)from_svd.size();j++) 
+				if(from_svd[j]>0.) EE_levels.push_back(-log(from_svd[j]));
 //			else cout<<"error in eigenvalue! "<<rs.eigenvalues()(j)<<endl;
-		sort(EE_levels.begin(),EE_levels.end());
-		EE_levels_all.insert(EE_levels_all.end(),EE_levels.begin(),EE_levels.end());
-		EE_levels_storage.push_back(EE_levels);
+			sort(EE_levels.begin(),EE_levels.end());
+			for(unsigned int j=0;j<EE_levels.size();j++) entropy_sum+=exp(-EE_levels[j])*EE_levels[j];
+			EE_levels_all.insert(EE_levels_all.end(),EE_levels.begin(),EE_levels.end());
+			EE_levels_storage.push_back(EE_levels);
+		}
+		entropy_out<<entropy_sum<<endl;
 	}
+	entropy_out.close();
 	sort(EE_levels_all.begin(),EE_levels_all.end());
 	vector<double> energy_grid=make_grid(EE_levels_all,200);
 	vector<double> integrated_DOS=make_DOS(EE_levels_all,energy_grid);
 
 	//print DOS
 	filename.str("");
-	filename<<"dos";
+	if(kmin_t==-1) filename<<folder<<"/dos";
+	else filename<<folder<<"/dos_single";
 	if(label!=-100) filename<<label;
 	ofstream dosout;
 	dosout.open(filename.str().c_str());
@@ -232,9 +313,10 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc,dou
 		dosout<<integrated_DOS[i]<<endl;
 	}
 	dosout.close();
-
-	for(int i=start;i<end;i++){
-		s=make_S(EE_levels_storage[i-start],energy_grid,integrated_DOS);
+/*
+	for(auto it=EE_levels_storage.begin();it!=EE_levels_storage.end();++it){
+		cout<<it->size()<<endl;
+		s=make_S(*it,energy_grid,integrated_DOS);
 //		for(int j=0;j<(signed)s.size();j++) cout<<s[j]<<endl;
 		rout<<compute_r(s)<<endl;
 		s_spacings=spacings(s);
@@ -243,9 +325,32 @@ void MatrixTFIM<ART>::entanglement_spacings(int start, int end, int to_trunc,dou
 	for(int j=0;j<(signed)EE_levels_storage.size();j++) 
 		for(int k=0;k<(signed)EE_levels_storage[j].size();k++) Lout<<EE_levels_storage[j][k]<<" "<<endl;
 	for(int j=0;j<(signed)s_spacings_all.size();j++) Sout<<s_spacings_all[j]<<endl;
-	rout.close();
+*/	rout.close();
 	Lout.close();
 	Sout.close();	
+
+}
+
+template<class ART>
+void MatrixTFIM<ART>::plot_states(int start, int end){
+	ofstream sout("eigenstates");
+	ART max;
+	int maxindex;
+	vector<int> largest;
+	for(int i=start; i<end; i++){
+		//find the largest element in the eigenvectro
+		max=0;
+		for(int j=0;j<this->nrows();j++){
+			if(abs(this->eigvecs[i][j])>max){
+				max=abs(this->eigvecs[i][j]); 
+				maxindex=j;
+			}
+		}
+		largest=bitset_to_pos(this->states[maxindex],Nspins);
+		for(int j=0;j<this->nrows();j++)
+			sout<<distance_calc(largest,bitset_to_pos(this->states[j],Nspins))<<" "<<this->eigvecs[i][j]<<" "<<(bitset<12>)this->states[j]<<" "<<(bitset<12>)this->states[maxindex]<<endl;
+	}
+	sout.close();
 
 }
 template<class ART>
